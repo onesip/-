@@ -12,34 +12,22 @@ if (html.includes('id="mobile-nav-toggle"')) {
   process.exit(0);
 }
 
-const brandBefore = `      <div class="brand">
-        <div class="brand-mark">账</div>
-        <div>
-          <strong>本地账本</strong>
-          <span>Local Ledger</span>
-        </div>
-      </div>`;
+const navPosition = html.indexOf('<nav id="nav"');
+if (navPosition < 0) throw new Error('Navigation element was not found.');
+const brandClose = html.lastIndexOf('</div>', navPosition);
+if (brandClose < 0) throw new Error('Brand container was not found.');
 
-const brandAfter = `      <div class="brand">
-        <div class="brand-mark">账</div>
-        <div class="brand-copy">
-          <strong>本地账本</strong>
-          <span>Local Ledger</span>
-        </div>
+const toggleMarkup = `
         <button id="mobile-nav-toggle" class="mobile-nav-toggle" type="button" aria-expanded="false" aria-controls="nav">
           <span class="menu-icon" aria-hidden="true"></span>
           <span class="menu-label">菜单</span>
         </button>
-      </div>`;
-
-if (!html.includes(brandBefore)) {
-  throw new Error('Could not find the BankHome brand block to patch.');
-}
-html = html.replace(brandBefore, brandAfter);
+      `;
+html = html.slice(0, brandClose) + toggleMarkup + html.slice(brandClose);
 
 const mobileCss = `
 /* BankHome mobile collapsible navigation */
-.brand-copy { min-width: 0; flex: 1; }
+.brand > div:nth-child(2) { min-width: 0; flex: 1; }
 .mobile-nav-toggle {
   display: none;
   flex: 0 0 auto;
@@ -71,10 +59,7 @@ const mobileCss = `
   left: 0; right: 0; top: 3px;
   border-top: 2px solid currentColor;
 }
-.sidebar.nav-open .mobile-nav-toggle .menu-icon {
-  border: 0;
-  height: 17px;
-}
+.sidebar.nav-open .mobile-nav-toggle .menu-icon { border: 0; height: 17px; }
 .sidebar.nav-open .mobile-nav-toggle .menu-icon::before,
 .sidebar.nav-open .mobile-nav-toggle .menu-icon::after {
   content: "";
@@ -111,10 +96,7 @@ const mobileCss = `
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
-  .sidebar.nav-open .nav-list {
-    display: grid !important;
-    animation: bankhomeNavReveal .18s ease-out;
-  }
+  .sidebar.nav-open .nav-list { display: grid !important; animation: bankhomeNavReveal .18s ease-out; }
   .privacy-note { display: none; }
   .main-area { grid-column: 1; padding: 12px 14px 44px; margin-left: 0; }
   @keyframes bankhomeNavReveal {
@@ -122,7 +104,6 @@ const mobileCss = `
     to { opacity: 1; transform: translateY(0); }
   }
 }
-
 @media (max-width: 820px) {
   .nav-item {
     flex-direction: column;
@@ -134,7 +115,6 @@ const mobileCss = `
   }
   .nav-item span { font-size: 18px; width: auto; }
 }
-
 @media (max-width: 560px) {
   .sidebar { margin: 8px 8px 0; padding: 11px 12px; border-radius: 20px; }
   .brand strong { font-size: 16px; }
@@ -144,8 +124,8 @@ const mobileCss = `
 }`;
 
 const styleEnd = html.indexOf('</style>');
-if (styleEnd < 0) throw new Error('Could not find closing style tag.');
-html = `${html.slice(0, styleEnd)}${mobileCss}\n${html.slice(styleEnd)}`;
+if (styleEnd < 0) throw new Error('Closing style tag was not found.');
+html = html.slice(0, styleEnd) + mobileCss + '\n' + html.slice(styleEnd);
 
 const mobileScript = `
 <script>
@@ -154,7 +134,6 @@ const mobileScript = `
   const toggle = document.getElementById('mobile-nav-toggle');
   const nav = document.getElementById('nav');
   if (!sidebar || !toggle || !nav) return;
-
   const label = toggle.querySelector('.menu-label');
   const isMobile = () => window.matchMedia('(max-width: 920px)').matches;
   const closeMenu = () => {
@@ -162,30 +141,23 @@ const mobileScript = `
     toggle.setAttribute('aria-expanded', 'false');
     if (label) label.textContent = '菜单';
   };
-
   toggle.addEventListener('click', event => {
     event.stopPropagation();
     const open = sidebar.classList.toggle('nav-open');
     toggle.setAttribute('aria-expanded', String(open));
     if (label) label.textContent = open ? '收起' : '菜单';
   });
-
   nav.addEventListener('click', event => {
     if (event.target.closest('[data-view]') && isMobile()) closeMenu();
   });
-
   document.addEventListener('click', event => {
     if (isMobile() && sidebar.classList.contains('nav-open') && !sidebar.contains(event.target)) closeMenu();
   });
-
-  window.addEventListener('resize', () => {
-    if (!isMobile()) closeMenu();
-  });
+  window.addEventListener('resize', () => { if (!isMobile()) closeMenu(); });
 })();
 </script>`;
 
-html = html.replace('</body>', `${mobileScript}\n</body>`);
-html = html.replace('<meta name="theme-color" content="#ffedf6">', '<meta name="theme-color" content="#ffedf6">\n  <meta name="bankhome-build" content="2026-07-27-mobile-collapse-v1">');
-
+html = html.replace('</body>', mobileScript + '\n</body>');
+html = html.replace('<meta name="theme-color" content="#ffedf6">', '<meta name="theme-color" content="#ffedf6">\n  <meta name="bankhome-build" content="2026-07-27-mobile-collapse-v2">');
 fs.writeFileSync(target, html);
 console.log(`Patched collapsible mobile navigation in ${target}`);
