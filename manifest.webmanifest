@@ -1,0 +1,11 @@
+{
+  "name": "本地账本 Local Ledger",
+  "short_name": "本地账本",
+  "description": "多银行流水导入、分类、预算与现金记账",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f0e7",
+  "theme_color": "#f4f0e7",
+  "icons": []
+}
