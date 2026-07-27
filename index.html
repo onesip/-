@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111827">
+  <meta name="description" content="浏览器本地存储的多银行流水、分类与预算管理工具">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>本地账本 · 多银行记账</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">账</div>
+        <div>
+          <strong>本地账本</strong>
+          <span>Local Ledger</span>
+        </div>
+      </div>
+
+      <nav id="nav" class="nav-list" aria-label="主要导航">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span>总览</button>
+        <button class="nav-item" data-view="transactions"><span>≡</span>流水</button>
+        <button class="nav-item" data-view="import"><span>⇧</span>导入银行流水</button>
+        <button class="nav-item" data-view="budgets"><span>◎</span>预算</button>
+        <button class="nav-item" data-view="rules"><span>⚙</span>分类规则</button>
+        <button class="nav-item" data-view="accounts"><span>▣</span>账户</button>
+        <button class="nav-item" data-view="backup"><span>↥</span>备份与恢复</button>
+      </nav>
+
+      <div class="privacy-note">
+        <span class="privacy-dot"></span>
+        <div><strong>只保存在此浏览器</strong><small>银行流水不会保存到网站服务器</small></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">财务总览</h1>
+          <p id="page-subtitle">把多个银行账户合并成一个清楚的账本</p>
+        </div>
+        <div class="top-actions">
+          <label class="month-picker-wrap">
+            <span>月份</span>
+            <input id="global-month" type="month">
+          </label>
+          <button id="quick-add" class="button secondary">+ 现金 / 手动记账</button>
+          <button id="quick-import" class="button primary">导入流水</button>
+        </div>
+      </header>
+
+      <div id="save-status" class="save-status">已保存在此浏览器</div>
+
+      <section id="view-dashboard" class="view active">
+        <div class="metric-grid">
+          <article class="metric-card">
+            <span class="metric-label">本月收入</span>
+            <strong id="metric-income">€0.00</strong>
+            <small id="metric-income-count">0 笔收入</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">本月支出</span>
+            <strong id="metric-expense">€0.00</strong>
+            <small id="metric-expense-count">0 笔支出</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">本月净结余</span>
+            <strong id="metric-net">€0.00</strong>
+            <small>已排除内部转账</small>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">未分类</span>
+            <strong id="metric-uncategorized">0</strong>
+            <small>建议先处理这些流水</small>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel panel-large">
+            <div class="panel-head">
+              <div><h2>支出分类</h2><p>本月钱主要花在哪里</p></div>
+              <button class="text-button" data-jump="transactions">查看全部流水 →</button>
+            </div>
+            <div id="category-chart" class="category-chart empty-state">暂无支出数据</div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head"><div><h2>预算进度</h2><p>按类别查看本月使用情况</p></div></div>
+            <div id="budget-summary" class="budget-summary empty-state">还没有设置预算</div>
+            <button class="button full secondary" data-jump="budgets">设置本月预算</button>
+          </article>
+        </div>
+
+        <div class="dashboard-grid lower">
+          <article class="panel panel-large">
+            <div class="panel-head"><div><h2>近 6 个月趋势</h2><p>收入、支出与净结余变化</p></div></div>
+            <canvas id="trend-chart" height="260"></canvas>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><h2>账户概览</h2><p>多银行合并查看</p></div></div>
+            <div id="account-summary" class="account-summary empty-state">还没有账户</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-transactions" class="view">
+        <div class="toolbar panel compact">
+          <div class="toolbar-row">
+            <input id="tx-search" class="input grow" placeholder="搜索商家、说明、备注……">
+            <select id="tx-account-filter" class="input"><option value="">全部账户</option></select>
+            <select id="tx-category-filter" class="input"><option value="">全部分类</option></select>
+            <select id="tx-type-filter" class="input">
+              <option value="">全部类型</option><option value="expense">支出</option><option value="income">收入</option><option value="transfer">内部转账</option>
+            </select>
+          </div>
+          <div class="toolbar-row sub">
+            <span id="tx-result-count">0 笔</span>
+            <div class="toolbar-actions">
+              <button id="bulk-categorize" class="button small secondary">批量分类</button>
+              <button id="export-filtered-csv" class="button small secondary">导出当前 CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th class="check-col"><input id="select-all-tx" type="checkbox"></th><th>日期</th><th>说明</th><th>账户</th><th>分类</th><th>类型</th><th class="amount-col">金额</th><th></th></tr></thead>
+              <tbody id="transaction-body"></tbody>
+            </table>
+          </div>
+          <div id="transaction-empty" class="empty-box">还没有流水。先导入银行账单，或手动添加一笔。</div>
+        </div>
+      </section>
+
+      <section id="view-import" class="view">
+        <div class="import-layout">
+          <article class="panel">
+            <div class="panel-head"><div><h2>导入银行流水</h2><p>支持同时选择多个文件，自动合并并去重</p></div></div>
+            <label id="drop-zone" class="drop-zone">
+              <input id="file-input" type="file" multiple accept=".pdf,.csv,.xlsx,.xlsm" hidden>
+              <div class="drop-icon">⇧</div>
+              <strong>把 PDF、CSV 或 XLSX 拖到这里</strong>
+              <span>或点击选择文件</span>
+              <small>ING、Revolut 已有专用 PDF 规则；ABN AMRO、Rabobank 以及未知表格会先尝试通用识别</small>
+            </label>
+            <div class="support-grid">
+              <div><strong>PDF</strong><span>文字版银行账单</span></div>
+              <div><strong>CSV</strong><span>准确率最高，优先推荐</span></div>
+              <div><strong>XLSX</strong><span>自动寻找日期与金额列</span></div>
+              <div><strong>多账户</strong><span>自动识别账户并合并</span></div>
+            </div>
+          </article>
+
+          <aside class="panel tips-panel">
+            <h2>导入时会自动处理</h2>
+            <ul class="feature-list">
+              <li><span>01</span><div><strong>识别银行与账户</strong><small>按 IBAN 或文件内容建立账户</small></div></li>
+              <li><span>02</span><div><strong>统一正负金额</strong><small>收入为正，支出为负</small></div></li>
+              <li><span>03</span><div><strong>自动去重</strong><small>重复导入同一份账单不会重复记账</small></div></li>
+              <li><span>04</span><div><strong>初步分类</strong><small>按商家和自定义规则分类</small></div></li>
+              <li><span>05</span><div><strong>内部转账排除</strong><small>转储蓄、信用卡还款等不计作消费</small></div></li>
+            </ul>
+          </aside>
+        </div>
+
+        <div id="import-progress" class="panel import-progress hidden"></div>
+        <div id="import-results" class="import-results"></div>
+      </section>
+
+      <section id="view-budgets" class="view">
+        <div class="panel budget-editor">
+          <div class="panel-head">
+            <div><h2>月度预算</h2><p>预算只统计支出，不包含内部转账</p></div>
+            <button id="copy-budgets" class="button secondary">复制上月预算</button>
+          </div>
+          <div id="budget-list" class="budget-list"></div>
+          <button id="add-budget" class="button primary">+ 添加预算分类</button>
+        </div>
+      </section>
+
+      <section id="view-rules" class="view">
+        <div class="dashboard-grid">
+          <article class="panel panel-large">
+            <div class="panel-head"><div><h2>自动分类规则</h2><p>导入新流水时，按关键词自动分类</p></div></div>
+            <div id="rule-list" class="rule-list"></div>
+            <button id="add-rule" class="button primary">+ 新建规则</button>
+          </article>
+          <aside class="panel">
+            <h2>规则怎么用</h2>
+            <p class="muted">例如关键词写 <strong>Jumbo</strong>，分类选“食品杂货”；以后包含 Jumbo 的流水都会自动归类。</p>
+            <button id="reapply-rules" class="button full secondary">对全部流水重新应用规则</button>
+            <div class="warning-box">重新应用只会覆盖“未分类”或自动分类的流水，手动改过的分类会保留。</div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-accounts" class="view">
+        <div class="panel">
+          <div class="panel-head"><div><h2>账户管理</h2><p>银行账户、现金钱包和其他资金账户</p></div><button id="add-account" class="button primary">+ 添加账户</button></div>
+          <div id="account-list" class="account-list"></div>
+        </div>
+      </section>
+
+      <section id="view-backup" class="view">
+        <div class="backup-grid">
+          <article class="panel">
+            <h2>导出完整备份</h2>
+            <p class="muted">包含流水、分类、预算、规则和账户设置。建议每月保存一次。</p>
+            <button id="download-backup" class="button primary full">下载 JSON 备份</button>
+          </article>
+          <article class="panel">
+            <h2>恢复备份</h2>
+            <p class="muted">恢复会替换当前全部数据。操作前建议先导出一次现有备份。</p>
+            <label class="button secondary full file-button">选择备份文件<input id="restore-file" type="file" accept=".json" hidden></label>
+          </article>
+          <article class="panel danger-panel">
+            <h2>清空本地数据</h2>
+            <p class="muted">此操作不可撤销，包括全部银行流水和预算。</p>
+            <button id="clear-data" class="button danger full">清空全部数据</button>
+          </article>
+        </div>
+        <div class="panel data-location">
+          <h2>数据保存在哪里</h2>
+          <p>网站可以公开访问，但你的流水、预算和分类只保存在当前浏览器的本地数据库中，不会保存到网站服务器。清理浏览器数据或更换设备前，请先下载 JSON 备份。</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div id="modal" class="modal" role="dialog" aria-modal="true">
+      <button id="modal-close" class="modal-close" aria-label="关闭">×</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="local-api.js"></script>
+  <script src="app.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});</script>
+</body>
+</html>
