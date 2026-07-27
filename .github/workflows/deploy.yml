@@ -23,7 +23,15 @@ jobs:
       - name: Rebuild website
         run: |
           mkdir -p _site
-          cat site-parts/sitepart_* | base64 --decode > /tmp/local-ledger-site.tar.gz
+          cat \
+            site-parts/sitepart_00a \
+            site-parts/sitepart_00b \
+            site-parts/sitepart_00c \
+            site-parts/sitepart_01 \
+            site-parts/sitepart_02 \
+            site-parts/sitepart_03 \
+            site-parts/sitepart_04 \
+            | base64 --decode > /tmp/local-ledger-site.tar.gz
           tar -xzf /tmp/local-ledger-site.tar.gz -C _site
       - name: Setup Pages
         uses: actions/configure-pages@v5
