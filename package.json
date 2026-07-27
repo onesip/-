@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && cat site-parts/sitepart_00a site-parts/sitepart_00b site-parts/sitepart_00c site-parts/sitepart_01 site-parts/sitepart_02 site-parts/sitepart_03 site-parts/sitepart_04 | base64 --decode > /tmp/bankhome-site.tar.gz && tar -xzf /tmp/bankhome-site.tar.gz -C dist && node scripts/mobile-nav-patch.mjs dist/index.html"
+    "build": "rm -rf dist && mkdir -p dist && cat site-parts/sitepart_00a site-parts/sitepart_00b site-parts/sitepart_00c site-parts/sitepart_01 site-parts/sitepart_02 site-parts/sitepart_03 site-parts/sitepart_04 | base64 --decode > /tmp/bankhome-site.tar.gz && tar -xzf /tmp/bankhome-site.tar.gz -C dist && cp mobile-nav.css mobile-nav.js dist/ && sed -i 's#</head>#  <link rel=\"stylesheet\" href=\"mobile-nav.css?v=20260727c\">\\n</head>#' dist/index.html && sed -i 's#</body>#  <script src=\"mobile-nav.js?v=20260727c\"></script>\\n</body>#' dist/index.html"
   }
 }
