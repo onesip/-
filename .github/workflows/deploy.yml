@@ -33,6 +33,7 @@ jobs:
             site-parts/sitepart_04 \
             | base64 --decode > /tmp/local-ledger-site.tar.gz
           tar -xzf /tmp/local-ledger-site.tar.gz -C _site
+          node scripts/mobile-nav-patch.mjs _site/index.html
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload website
