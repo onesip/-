@@ -1,0 +1,20 @@
+{
+  "name": "BankHome 本地账本",
+  "short_name": "账本",
+  "description": "多银行流水导入、分类、预算与现金记账",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fff6fb",
+  "theme_color": "#f3a2d8",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "app-icon.svg?v=20260803a",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
