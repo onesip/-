@@ -1,4 +1,4 @@
-name: Deploy Local Ledger to GitHub Pages
+name: Deploy BankHome to GitHub Pages
 
 on:
   push:
@@ -10,6 +10,10 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 environment:
   name: github-pages
   url: ${{ steps.deployment.outputs.page_url }}
@@ -20,28 +24,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Rebuild website
-        run: |
-          mkdir -p _site
-          cat \
-            site-parts/sitepart_00a \
-            site-parts/sitepart_00b \
-            site-parts/sitepart_00c \
-            site-parts/sitepart_01 \
-            site-parts/sitepart_02 \
-            site-parts/sitepart_03 \
-            site-parts/sitepart_04 \
-            | base64 --decode > /tmp/local-ledger-site.tar.gz
-          tar -xzf /tmp/local-ledger-site.tar.gz -C _site
-          cp mobile-nav.css mobile-nav.js _site/
-          sed -i 's#</head>#  <link rel="stylesheet" href="mobile-nav.css?v=20260727c">\n</head>#' _site/index.html
-          sed -i 's#</body>#  <script src="mobile-nav.js?v=20260727c"></script>\n</body>#' _site/index.html
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build website
+        run: npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:
-          path: '_site'
+          path: dist
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
